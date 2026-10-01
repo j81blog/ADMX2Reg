@@ -1,0 +1,73 @@
+<ui:FluentWindow x:Class="ADMX2Reg.Views.ExportWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Width="900" Height="700" MinWidth="640" MinHeight="520"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica"
+                 WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar x:Name="Bar" Grid.Row="0" Title="Export GPO" ShowMinimize="False" ShowMaximize="False" />
+        <Grid Grid.Row="1" Margin="20,8,20,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Format" Margin="0,0,0,4" />
+                    <ComboBox x:Name="FormatBox" SelectionChanged="Options_Changed">
+                        <ComboBoxItem Content=".reg file" />
+                        <ComboBoxItem Content="PowerShell script (standalone, idempotent)" />
+                        <ComboBoxItem Content="PowerShell script (minimal)" />
+                        <ComboBoxItem Content="Registry.pol" />
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="24,0,0,0">
+                    <TextBlock Text="Include" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox x:Name="ComputerCheck" Content="Computer" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                        <CheckBox x:Name="UserCheck" Content="User" IsChecked="True" Margin="12,0,0,0" Checked="Options_Changed" Unchecked="Options_Changed" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="Preview" Margin="0,0,0,4" />
+                <TextBox x:Name="PreviewBox" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                         FontFamily="Consolas" VerticalContentAlignment="Top"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+            </Grid>
+
+            <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                <TextBlock x:Name="WarningsHeader" Text="Warnings" Margin="0,0,0,4" />
+                <ListBox x:Name="WarningsList" MaxHeight="110">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <ui:Button x:Name="ExportButton" Content="Export..." Icon="{ui:SymbolIcon ArrowExportLtr24}" Appearance="Primary" MinWidth="110" IsDefault="True" Click="Export_Click" />
+                <ui:Button Content="Close" MinWidth="90" Margin="8,0,0,0" IsCancel="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

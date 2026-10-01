@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ADMX2Reg.Core\ADMX2Reg.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>ADMX2Reg</AssemblyName>
+    <RootNamespace>ADMX2Reg</RootNamespace>
+    <AssemblyTitle>ADMX2Reg</AssemblyTitle>
+    <Product>ADMX2Reg</Product>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- icon.svg / icon-small.svg are the sources; app.ico is rendered from them and Logo.xaml is a vector copy. -->
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+</Project>

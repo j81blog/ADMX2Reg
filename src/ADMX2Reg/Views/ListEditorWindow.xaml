@@ -1,0 +1,37 @@
+<ui:FluentWindow x:Class="ADMX2Reg.Views.ListEditorWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Width="620" Height="460" MinWidth="420" MinHeight="300"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica"
+                 WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar x:Name="Bar" Grid.Row="0" ShowMinimize="False" ShowMaximize="False" />
+        <Grid Grid.Row="1" Margin="20,8,20,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                <ui:Button Icon="{ui:SymbolIcon Add24}" Content="Add" Click="Add_Click" />
+                <ui:Button Icon="{ui:SymbolIcon Delete24}" Content="Remove" Margin="8,0,0,0" Click="Remove_Click" />
+            </StackPanel>
+            <DataGrid x:Name="EntriesGrid" RowBackground="Transparent" Background="Transparent" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False"
+                      CanUserDeleteRows="False" SelectionMode="Extended" HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn x:Name="NameColumn" Header="Value name" Binding="{Binding Name}" Width="*" />
+                    <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <ui:Button Content="OK" Appearance="Primary" MinWidth="90" IsDefault="True" Click="Ok_Click" />
+                <ui:Button Content="Cancel" MinWidth="90" Margin="8,0,0,0" IsCancel="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

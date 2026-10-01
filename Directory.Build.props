@@ -1,0 +1,14 @@
+<Project>
+  <!-- Shared version and product info for every project in the solution. Bump Version for a release. -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>ADMX2Reg</Product>
+    <Authors>John Billekens</Authors>
+    <Company>John Billekens Consultancy</Company>
+    <Copyright>Copyright © 2026 John Billekens</Copyright>
+    <Description>Portable Group Policy editor that exports ADMX-based settings as .reg, PowerShell or Registry.pol.</Description>
+  </PropertyGroup>
+</Project>

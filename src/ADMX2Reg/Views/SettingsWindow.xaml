@@ -1,0 +1,160 @@
+<ui:FluentWindow x:Class="ADMX2Reg.Views.SettingsWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:c="clr-namespace:ADMX2Reg.Controls"
+                 Width="680" SizeToContent="Height" MinWidth="560" ResizeMode="NoResize"
+                 Title="Settings" ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica"
+                 WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <ui:FluentWindow.Resources>
+        <!-- Windows 11 Settings-style card -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="16,14" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="SectionStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="2,18,0,8" />
+        </Style>
+        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style x:Key="CardDescriptionStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+        <Style x:Key="CardIconStyle" TargetType="ui:SymbolIcon">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Margin" Value="0,2,16,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar Grid.Row="0" Title="Settings" ShowMinimize="False" ShowMaximize="False" />
+
+        <StackPanel Grid.Row="1" Margin="24,0,24,20">
+            <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,2" />
+
+            <!-- administrative templates -->
+            <TextBlock Text="Administrative templates" Style="{StaticResource SectionStyle}" />
+            <Border Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="FolderOpen24" Style="{StaticResource CardIconStyle}" />
+                    <StackPanel Grid.Column="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="PolicyDefinitions folder" Style="{StaticResource CardTitleStyle}" />
+                            <c:HelpTip Text="Local store: C:\Windows\PolicyDefinitions, the templates installed on this computer.&#10;&#10;Domain central store: \\domain\SYSVOL\domain\Policies\PolicyDefinitions, the shared templates of an Active Directory domain. Detection only works on a domain-joined computer.&#10;&#10;Portable: put a PolicyDefinitions folder with your own ADMX and ADML files next to ADMX2Reg.exe. It is picked up automatically on first start as .\PolicyDefinitions.&#10;&#10;ADML language files can be in language subfolders (en-US, nl-NL) or next to the ADMX files." />
+                        </StackPanel>
+                        <TextBlock Text="Where the ADMX and ADML files are read from. A relative path such as .\PolicyDefinitions is relative to the folder of ADMX2Reg.exe."
+                                   Style="{StaticResource CardDescriptionStyle}" />
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBox x:Name="PathBox" LostFocus="PathBox_LostFocus" AutomationProperties.Name="PolicyDefinitions folder" />
+                            <ui:Button Grid.Column="1" Content="Browse..." MinWidth="96" Margin="8,0,0,0" Click="BrowsePath_Click" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <ui:Button Content="Use local store" Icon="{ui:SymbolIcon Home24}" Click="LocalStore_Click" />
+                            <ui:Button x:Name="CentralButton" Content="Detect domain central store" Icon="{ui:SymbolIcon BuildingMultiple24}"
+                                       Margin="8,0,0,0" Click="Central_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="DetectText" Margin="0,8,0,0" Visibility="Collapsed" Style="{StaticResource CardDescriptionStyle}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="LocalLanguage24" Style="{StaticResource CardIconStyle}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Template language" Style="{StaticResource CardTitleStyle}" />
+                        <TextBlock Text="Language of policy names and help text (ADML). Falls back to en-US when missing."
+                                   Style="{StaticResource CardDescriptionStyle}" />
+                    </StackPanel>
+                    <ComboBox x:Name="LanguageBox" Grid.Column="2" Width="220" Margin="16,0,0,0" VerticalAlignment="Center"
+                              AutomationProperties.Name="Template language" />
+                </Grid>
+            </Border>
+
+            <!-- appearance -->
+            <TextBlock Text="Appearance" Style="{StaticResource SectionStyle}" />
+            <Border Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="DarkTheme24" Style="{StaticResource CardIconStyle}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="App theme" Style="{StaticResource CardTitleStyle}" />
+                        <TextBlock Text="Follow Windows, or always use light or dark." Style="{StaticResource CardDescriptionStyle}" />
+                    </StackPanel>
+                    <ComboBox x:Name="ThemeBox" Grid.Column="2" Width="220" Margin="16,0,0,0" VerticalAlignment="Center"
+                              AutomationProperties.Name="App theme" SelectionChanged="Theme_Changed">
+                        <ComboBoxItem Content="Use system setting" />
+                        <ComboBoxItem Content="Light" />
+                        <ComboBoxItem Content="Dark" />
+                    </ComboBox>
+                </Grid>
+            </Border>
+
+            <!-- storage -->
+            <TextBlock Text="Storage" Style="{StaticResource SectionStyle}" />
+            <Border Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="Folder24" Style="{StaticResource CardIconStyle}" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="GPO folder" Style="{StaticResource CardTitleStyle}" />
+                        <TextBlock Text="Where your Group Policy Objects are saved, one JSON file per GPO. A relative path such as .\GPOs is relative to the folder of ADMX2Reg.exe, so it moves with the app."
+                                   Style="{StaticResource CardDescriptionStyle}" />
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBox x:Name="GpoBox" AutomationProperties.Name="GPO folder" />
+                            <ui:Button Grid.Column="1" Content="Browse..." MinWidth="96" Margin="8,0,0,0" Click="BrowseGpo_Click" />
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <!-- footer, like a Windows dialog -->
+        <Border Grid.Row="2" Padding="24,16" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button Content="Save" Appearance="Primary" MinWidth="110" IsDefault="True" Click="Save_Click" />
+                <ui:Button Content="Cancel" MinWidth="110" Margin="8,0,0,0" IsCancel="True" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

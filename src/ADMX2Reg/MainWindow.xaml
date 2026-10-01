@@ -1,0 +1,846 @@
+<ui:FluentWindow x:Class="ADMX2Reg.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:c="clr-namespace:ADMX2Reg.Controls"
+                 Title="ADMX2Reg" Icon="pack://application:,,,/Assets/app.ico" Width="1440" Height="860" MinWidth="1100" MinHeight="600"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica"
+                 WindowCornerPreference="Round" WindowStartupLocation="CenterScreen"
+                 PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding ReloadAllCommand}" />
+        <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewGpoCommand}" />
+        <KeyBinding Key="W" Modifiers="Ctrl" Command="{Binding CloseActiveTabCommand}" />
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <!-- activity rail toggle with the active indicator pill -->
+        <Style x:Key="RailToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="Back" CornerRadius="6" Background="Transparent" />
+                            <Rectangle x:Name="Pill" Width="3" Height="16" RadiusX="2" RadiusY="2" Margin="-6,0,0,0"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center"
+                                       Fill="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                <Setter TargetName="Pill" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailExpanded}" Value="True">
+                    <Setter Property="Width" Value="Auto" />
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    <Setter Property="Margin" Value="6,2" />
+                    <Setter Property="Padding" Value="10,0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- activity rail command: icon only, icon + label (Tag) when the rail is expanded -->
+        <Style x:Key="RailButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Content" Value="{x:Null}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailExpanded}" Value="True">
+                    <Setter Property="Width" Value="Auto" />
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    <Setter Property="Margin" Value="6,2" />
+                    <Setter Property="Padding" Value="10,0" />
+                    <Setter Property="Content" Value="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- bottom panel view selector (pill tabs) -->
+        <Style x:Key="PillTabItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="1,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <Border x:Name="Back" CornerRadius="4" Opacity="0.16" Background="Transparent" />
+                            <ContentPresenter Margin="12,0" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Setter TargetName="Back" Property="Opacity" Value="0.08" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Back" Property="Opacity" Value="0.16" />
+                                <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- GPO tabs in the editor area -->
+        <Style x:Key="EditorTabItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <EventSetter Event="PreviewMouseRightButtonDown" Handler="TabItem_RightClick" />
+            <EventSetter Event="PreviewMouseDown" Handler="TabItem_MouseDown" />
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                        <ui:MenuItem Header="Close" Icon="{ui:SymbolIcon Dismiss24}" Command="{Binding CloseActiveTabCommand}" />
+                        <ui:MenuItem Header="Close others" Command="{Binding CloseOtherTabsCommand}" />
+                        <Separator />
+                        <ui:MenuItem Header="Rename..." Icon="{ui:SymbolIcon Rename24}" Command="{Binding RenameGpoCommand}" />
+                        <ui:MenuItem Header="Duplicate" Icon="{ui:SymbolIcon Copy24}" Command="{Binding DuplicateGpoCommand}" />
+                        <Separator />
+                        <ui:MenuItem Header="Export..." Icon="{ui:SymbolIcon ArrowExportLtr24}" Command="{Binding ExportCommand}" />
+                        <ui:MenuItem Header="Report" Icon="{ui:SymbolIcon DocumentText24}" Command="{Binding ReportCommand}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid x:Name="Root" Background="Transparent">
+                            <Border x:Name="Back" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" Visibility="Collapsed" />
+                            <Rectangle x:Name="Accent" Height="2" VerticalAlignment="Top" Fill="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                            <Rectangle Width="1" HorizontalAlignment="Right" Fill="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                            <ContentPresenter Margin="14,2,6,0" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Back" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Accent" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- link style button for the status bar -->
+        <Style x:Key="StatusButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Label" Property="TextDecorations" Value="Underline" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Label" Property="TextDecorations" Value="Underline" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- selectable read-only text without chrome; the surrounding ScrollViewer scrolls it together with the line numbers -->
+        <Style x:Key="PreviewTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                      HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- title bar with the search box -->
+        <ui:TitleBar x:Name="TitleBar" Grid.Row="0" Title="ADMX2Reg" Height="48">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="{StaticResource LogoSmallImage}" Width="16" Height="16" />
+            </ui:TitleBar.Icon>
+            <ui:TitleBar.CenterContent>
+                <!-- SearchHost is stretched from code so the box sits in the middle of the window -->
+                <Grid x:Name="SearchHost">
+                <Grid Width="520" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ui:TextBox x:Name="SearchBox" PlaceholderText="Search policies, categories, registry keys"
+                                Icon="{ui:SymbolIcon Search24}" ClearButtonEnabled="True"
+                                AutomationProperties.Name="Search policies"
+                                ToolTip="Search the policies of the open GPO (Ctrl+K)"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Padding="6,1" CornerRadius="4"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" IsHitTestVisible="False">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="Ctrl+K" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                </Grid>
+                </Grid>
+            </ui:TitleBar.CenterContent>
+        </ui:TitleBar>
+
+        <!-- load error -->
+        <Border Grid.Row="1" Margin="12,0,12,8" Padding="12,8" CornerRadius="6" BorderThickness="1"
+                BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Visibility="{Binding HasLoadError, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon Symbol="ErrorCircle24" FontSize="20" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Margin="0,0,12,0" />
+                <TextBlock Grid.Column="1" Text="{Binding LoadError}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
+                    <ui:Button Content="Open settings" Command="{Binding OpenSettingsCommand}" />
+                    <ui:Button Content="Retry" Margin="8,0,0,0" Command="{Binding ReloadAdmxCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- workbench -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="SideCol" Width="340" MinWidth="200" MaxWidth="640" />
+                <ColumnDefinition x:Name="SplitCol" Width="6" />
+                <ColumnDefinition Width="*" MinWidth="480" />
+            </Grid.ColumnDefinitions>
+
+            <!-- activity rail -->
+            <DockPanel Grid.Column="0" LastChildFill="False" Margin="0,4,0,8">
+                <DockPanel.Style>
+                    <Style TargetType="DockPanel">
+                        <Setter Property="Width" Value="52" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRailExpanded}" Value="True">
+                                <Setter Property="Width" Value="208" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DockPanel.Style>
+                <ui:Button DockPanel.Dock="Top" Style="{StaticResource RailButtonStyle}" Icon="{ui:SymbolIcon Navigation24, FontSize=20}"
+                           Command="{Binding ToggleRailCommand}" ToolTip="Show or hide labels" AutomationProperties.Name="Expand navigation" />
+                <ToggleButton DockPanel.Dock="Top" Style="{StaticResource RailToggleStyle}"
+                              IsChecked="{Binding IsSidePanelVisible, Mode=TwoWay}"
+                              ToolTip="Group Policy Objects" AutomationProperties.Name="Group Policy Objects">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="DocumentMultiple24" FontSize="20" />
+                        <TextBlock Text="Group Policy Objects" Margin="8,0,0,0" VerticalAlignment="Center"
+                                   Visibility="{Binding IsRailExpanded, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </ToggleButton>
+                <ui:Button DockPanel.Dock="Top" Style="{StaticResource RailButtonStyle}" Tag="Import"
+                           Icon="{ui:SymbolIcon ArrowImport24, FontSize=20}" ToolTip="Import a .reg or Registry.pol file"
+                           AutomationProperties.Name="Import" Command="{Binding ImportCommand}" />
+                <ui:Button DockPanel.Dock="Top" Style="{StaticResource RailButtonStyle}" Tag="Report"
+                           Icon="{ui:SymbolIcon DocumentText24, FontSize=20}" ToolTip="Open the settings report in the browser"
+                           AutomationProperties.Name="Report" Command="{Binding ReportCommand}" IsEnabled="{Binding HasGpo}" />
+                <ui:Button DockPanel.Dock="Top" Style="{StaticResource RailButtonStyle}" Tag="Save report as"
+                           Icon="{ui:SymbolIcon Save24, FontSize=20}" ToolTip="Save report as..."
+                           AutomationProperties.Name="Save report as" Command="{Binding SaveReportCommand}" IsEnabled="{Binding HasGpo}" />
+                <ui:Button DockPanel.Dock="Top" Style="{StaticResource RailButtonStyle}" Tag="Reload ADMX"
+                           Icon="{ui:SymbolIcon ArrowSync24, FontSize=20}" ToolTip="Reload ADMX files (F5 also reloads GPOs)"
+                           AutomationProperties.Name="Reload ADMX" Command="{Binding ReloadAdmxCommand}" />
+                <ui:Button DockPanel.Dock="Bottom" Style="{StaticResource RailButtonStyle}" Tag="Settings"
+                           Icon="{ui:SymbolIcon Settings24, FontSize=20}" ToolTip="Settings"
+                           AutomationProperties.Name="Settings" Command="{Binding OpenSettingsCommand}" />
+                <ui:Button DockPanel.Dock="Bottom" Style="{StaticResource RailButtonStyle}" Tag="About"
+                           Icon="{ui:SymbolIcon Info24, FontSize=20}" ToolTip="About ADMX2Reg"
+                           AutomationProperties.Name="About" Command="{Binding AboutCommand}" />
+            </DockPanel>
+
+            <!-- side panel -->
+            <Border x:Name="SidePanel" Grid.Column="1" BorderThickness="1,1,0,0" CornerRadius="8,0,0,0"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+                <Grid x:Name="SideGrid" SizeChanged="SideGrid_SizeChanged">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="RowGpo" Height="Auto" />
+                        <RowDefinition x:Name="RowSplit" Height="6" />
+                        <RowDefinition x:Name="RowTree" Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- GPO section -->
+                    <Grid x:Name="GpoSection" Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Margin="8,8,8,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ui:Button Appearance="Transparent" BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="6,4"
+                                       Click="GpoHeader_Click" AutomationProperties.Name="Group Policy Objects section" ToolTip="Collapse or expand the list">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon x:Name="GpoChevron" Symbol="ChevronDown24" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="GROUP POLICY OBJECTS" Style="{StaticResource SectionHeaderTextStyle}" />
+                                </StackPanel>
+                            </ui:Button>
+                            <ui:Button Grid.Column="1" Appearance="Transparent" Width="28" Height="28" Padding="0"
+                                       Icon="{ui:SymbolIcon Add24, FontSize=16}" ToolTip="New GPO (Ctrl+N)"
+                                       AutomationProperties.Name="New GPO" Command="{Binding NewGpoCommand}" />
+                        </Grid>
+
+                        <Grid x:Name="GpoBody" Grid.Row="1">
+                            <ListBox x:Name="GpoList" ItemsSource="{Binding Gpos}" SelectedItem="{Binding SelectedGpo, Mode=TwoWay}"
+                                     BorderThickness="0" Background="Transparent" Margin="4,0" PreviewKeyDown="GpoList_PreviewKeyDown">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                        <EventSetter Event="PreviewMouseRightButtonDown" Handler="GpoItem_RightClick" />
+                                        <Style.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="2,3" ToolTip="{Binding Description}">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+                                                            <Setter Property="ToolTipService.IsEnabled" Value="False" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding ModifiedText}" FontSize="11" Opacity="0.75" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.ContextMenu>
+                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                        <ui:MenuItem Header="Open" Icon="{ui:SymbolIcon FolderOpen24}" Command="{Binding OpenGpoCommand}" />
+                                        <ui:MenuItem Header="New GPO..." Icon="{ui:SymbolIcon Add24}" Command="{Binding NewGpoCommand}" />
+                                        <ui:MenuItem Header="Rename..." Icon="{ui:SymbolIcon Rename24}" Command="{Binding RenameGpoCommand}" />
+                                        <ui:MenuItem Header="Duplicate" Icon="{ui:SymbolIcon Copy24}" Command="{Binding DuplicateGpoCommand}" />
+                                        <ui:MenuItem Header="Delete" Icon="{ui:SymbolIcon Delete24}" Command="{Binding DeleteGpoCommand}" />
+                                        <Separator />
+                                        <ui:MenuItem Header="Import..." Icon="{ui:SymbolIcon ArrowImport24}" Command="{Binding ImportCommand}" />
+                                        <ui:MenuItem Header="Export..." Icon="{ui:SymbolIcon ArrowExportLtr24}" Command="{Binding ExportCommand}" />
+                                        <ui:MenuItem Header="Report" Icon="{ui:SymbolIcon DocumentText24}" Command="{Binding ReportCommand}" />
+                                        <ui:MenuItem Header="Save report as..." Icon="{ui:SymbolIcon Save24}" Command="{Binding SaveReportCommand}" />
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                            </ListBox>
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16"
+                                        Visibility="{Binding HasNoGpos, Converter={StaticResource BoolToVis}}">
+                                <ui:SymbolIcon Symbol="DocumentAdd24" FontSize="32" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="No Group Policy Objects yet." TextAlignment="Center" Margin="0,8,0,2" />
+                                <TextBlock Text="Create one with + (Ctrl+N), or import a .reg or Registry.pol file."
+                                           TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- splitter between the sections -->
+                    <Grid Grid.Row="1">
+                        <Border Height="1" VerticalAlignment="Center" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                        <GridSplitter x:Name="SectionSplitter" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"
+                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" DragCompleted="SectionSplitter_DragCompleted"
+                                      AutomationProperties.Name="Resize the GPO list" />
+                    </Grid>
+
+                    <!-- policy tree section -->
+                    <Grid x:Name="TreeSection" Grid.Row="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Margin="8,4,8,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ui:Button Appearance="Transparent" BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="6,4"
+                                       Click="TreeHeader_Click" AutomationProperties.Name="Policy tree section" ToolTip="Collapse or expand the tree">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon x:Name="TreeChevron" Symbol="ChevronDown24" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="POLICY TREE" Style="{StaticResource SectionHeaderTextStyle}" />
+                                </StackPanel>
+                            </ui:Button>
+                            <ToggleButton Grid.Column="1" Width="28" Height="28" Padding="0" VerticalAlignment="Center"
+                                          IsChecked="{Binding ActiveTab.ConfiguredOnly, Mode=TwoWay}" IsEnabled="{Binding HasGpo}"
+                                          AutomationProperties.Name="Configured only"
+                                          ToolTip="Configured only: show only categories and settings that are configured in this GPO">
+                                <ui:SymbolIcon Symbol="Filter24" FontSize="16" />
+                            </ToggleButton>
+                        </Grid>
+
+                        <Grid x:Name="TreeBody" Grid.Row="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="12,2,12,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding WindowsVersionOptions}" SelectedItem="{Binding SelectedWindowsVersion, Mode=TwoWay}"
+                                          AutomationProperties.Name="Windows version" ToolTip="Show only policies that apply to this Windows version" />
+                                <CheckBox Grid.Column="1" Content="No version info" Margin="12,0,0,0" VerticalAlignment="Center"
+                                          IsChecked="{Binding IncludeUnversioned, Mode=TwoWay}" IsEnabled="{Binding IsVersionSelected}"
+                                          ToolTip="Also show policies that are not tied to a Windows version, such as Internet Explorer and third-party templates" />
+                                <c:HelpTip Grid.Column="2" Text="Windows version hides policies that the ADMX files limit to other Windows versions, for example &quot;Windows XP only&quot;. Policies labeled &quot;At least Windows ...&quot; always count as supported on newer versions. All Windows 11 releases (22H2, 23H2, 24H2) share one version in the ADMX files, so they cannot be told apart.&#10;&#10;No version info also shows policies that do not name a Windows version, such as many Internet Explorer and third-party policies.&#10;&#10;Settings you configured are always shown, with a warning icon when they do not match." />
+                            </Grid>
+                            <TreeView x:Name="PolicyTree" Grid.Row="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding ActiveTab.TreeRoots}" BorderThickness="0" Background="Transparent" Margin="4,0,0,0"
+                                      AutomationProperties.Name="Policy tree"
+                                      VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                <TreeView.ItemContainerStyle>
+                                    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsHidden}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TreeView.ItemContainerStyle>
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                                            <ui:SymbolIcon Symbol="{Binding Icon}" Margin="0,0,8,0" />
+                                            <TextBlock Text="{Binding Title}" FontWeight="{Binding TitleWeight}" VerticalAlignment="Center"
+                                                       MaxWidth="180" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
+                                            <Border Margin="8,0,0,0" Padding="6,0" CornerRadius="8" VerticalAlignment="Center"
+                                                    Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                    Visibility="{Binding HasConfigured, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding Configured}" FontSize="11"
+                                                           Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                            </Border>
+                                        </StackPanel>
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <GridSplitter x:Name="SideSplitter" Grid.Column="2" Width="6" HorizontalAlignment="Stretch" Background="Transparent"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="Resize the side panel" />
+
+            <!-- editor area -->
+            <Border Grid.Column="3" BorderThickness="1,1,0,0" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- tab strip -->
+                    <Border Grid.Row="0" Height="38" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            Visibility="{Binding HasTabs, Converter={StaticResource BoolToVis}}">
+                        <ListBox x:Name="TabStrip" ItemsSource="{Binding OpenTabs}" SelectedItem="{Binding ActiveTab, Mode=TwoWay}"
+                                 AutomationProperties.Name="Open GPOs" BorderThickness="0" Background="Transparent" Padding="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ItemContainerStyle="{StaticResource EditorTabItemStyle}">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" ToolTip="{Binding Item.Description}">
+                                        <TextBlock Text="{Binding Item.Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                                        <ui:Button Appearance="Transparent" Width="24" Height="24" Padding="0" Margin="8,0,0,0" MinHeight="0"
+                                                   Icon="{ui:SymbolIcon Dismiss24, FontSize=12}" ToolTip="Close (Ctrl+W)"
+                                                   AutomationProperties.Name="{Binding Item.Name, StringFormat='Close {0}'}"
+                                                   Command="{Binding DataContext.CloseTabOfCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+
+                    <!-- empty state -->
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24"
+                                Visibility="{Binding HasNoTabs, Converter={StaticResource BoolToVis}}">
+                        <ui:SymbolIcon Symbol="DocumentMultiple24" FontSize="40" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                        <TextBlock Text="No GPO open" FontSize="16" FontWeight="SemiBold" TextAlignment="Center" Margin="0,12,0,4" />
+                        <TextBlock Text="Open a GPO from the list, or create one with +."
+                                   TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- workbench: breadcrumb, policy list, bottom panel -->
+                    <Grid Grid.Row="1" Visibility="{Binding HasTabs, Converter={StaticResource BoolToVis}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="120" />
+                            <RowDefinition x:Name="RowBottomSplit" Height="6" />
+                            <RowDefinition x:Name="RowBottom" Height="300" MinHeight="140" />
+                        </Grid.RowDefinitions>
+
+                        <!-- breadcrumb -->
+                        <ItemsControl Grid.Row="0" Height="40" Margin="16,0" ItemsSource="{Binding ActiveTab.Breadcrumb}"
+                                      AutomationProperties.Name="Breadcrumb">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Text}" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="&#x203A;" Margin="8,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   Visibility="{Binding HasSeparator, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- policy view -->
+                        <Grid Grid.Row="1" Visibility="{Binding ActiveTab.IsPolicyView, Converter={StaticResource BoolToVis}}">
+                            <DataGrid x:Name="PolicyGrid" RowBackground="Transparent" Background="Transparent" ItemsSource="{Binding ActiveTab.Rows}"
+                                      SelectedItem="{Binding ActiveTab.SelectedRow, Mode=TwoWay}"
+                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                                      SelectionMode="Extended" SelectionUnit="FullRow" HeadersVisibility="Column"
+                                      GridLinesVisibility="None" EnableRowVirtualization="True" BorderThickness="0"
+                                      AutomationProperties.Name="Policy settings"
+                                      VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                                      PreviewKeyDown="PolicyGrid_PreviewKeyDown">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                        <EventSetter Event="MouseDoubleClick" Handler="PolicyRow_DoubleClick" />
+                                        <EventSetter Event="PreviewMouseRightButtonDown" Handler="PolicyRow_RightClick" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsConfigured}" Value="True">
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="" Width="40">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ui:SymbolIcon Symbol="{Binding StateSymbol}" Foreground="{Binding StateBrush}" FontSize="18"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Setting" Width="2.2*" SortMemberPath="Name">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <DockPanel VerticalAlignment="Center">
+                                                    <ui:SymbolIcon DockPanel.Dock="Right" Symbol="Warning24" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                                                   ToolTip="{Binding VersionWarning}"
+                                                                   Visibility="{Binding HasVersionWarning, Converter={StaticResource BoolToVis}}" />
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="State" Binding="{Binding StateText}" Width="110" />
+                                    <DataGridTextColumn x:Name="CategoryColumn" Header="Category" Binding="{Binding CategoryPath}" Width="1.6*" Visibility="Collapsed" />
+                                    <DataGridTextColumn Header="Comment" Binding="{Binding Comment}" Width="*" />
+                                </DataGrid.Columns>
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <ui:MenuItem Header="Edit..." Icon="{ui:SymbolIcon Edit24}" Click="EditMenu_Click" />
+                                        <ui:MenuItem Header="Set to Not configured" Icon="{ui:SymbolIcon Delete24}" Click="ClearMenu_Click" />
+                                        <Separator />
+                                        <ui:MenuItem Header="Copy to GPO..." Icon="{ui:SymbolIcon Copy24}" Click="CopyMenu_Click" />
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                            </DataGrid>
+                            <TextBlock Text="{Binding ActiveTab.ListHint}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       TextWrapping="Wrap" Margin="24" IsHitTestVisible="False"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+
+                        <!-- extra registry view -->
+                        <Grid Grid.Row="1" Visibility="{Binding ActiveTab.IsExtraView, Converter={StaticResource BoolToVis}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="16,0,16,8">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,160,0">
+                                    <TextBlock Text="Extra registry settings are written as-is on export. They did not match any policy." VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    <c:HelpTip Text="Registry values from an imported .reg or Registry.pol file that did not match any policy in the loaded ADMX files. They are kept so an import never loses data, and every export writes them exactly as they are. Remove the ones you do not need." />
+                                </StackPanel>
+                                <ui:Button HorizontalAlignment="Right" Icon="{ui:SymbolIcon Delete24}" Content="Remove selected" Click="RemoveExtra_Click" />
+                            </Grid>
+                            <DataGrid x:Name="ExtraGrid" RowBackground="Transparent" Background="Transparent" Grid.Row="1" ItemsSource="{Binding ActiveTab.ExtraRows}" AutoGenerateColumns="False"
+                                      IsReadOnly="True" CanUserAddRows="False" SelectionMode="Extended" HeadersVisibility="Column" BorderThickness="0"
+                                      GridLinesVisibility="None" PreviewKeyDown="ExtraGrid_PreviewKeyDown">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Hive" Binding="{Binding Hive}" Width="60" />
+                                    <DataGridTextColumn Header="Key" Binding="{Binding Key}" Width="2*" />
+                                    <DataGridTextColumn Header="Value" Binding="{Binding ValueName}" Width="*" />
+                                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100" />
+                                    <DataGridTextColumn Header="Data / action" Binding="{Binding Data}" Width="1.5*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+
+                        <!-- splitter above the bottom panel -->
+                        <Grid Grid.Row="2">
+                            <Border Height="1" VerticalAlignment="Center" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                            <GridSplitter x:Name="BottomSplitter" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"
+                                          ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="Resize the bottom panel" />
+                        </Grid>
+
+                        <!-- bottom panel -->
+                        <Border Grid.Row="3" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Height="42" Margin="8,0,12,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:Button Appearance="Transparent" Width="28" Height="28" Padding="0" VerticalAlignment="Center" Margin="0,0,6,0"
+                                               Command="{Binding ToggleBottomPanelCommand}" ToolTip="Collapse or expand the panel"
+                                               AutomationProperties.Name="Toggle bottom panel">
+                                        <ui:SymbolIcon FontSize="14">
+                                            <ui:SymbolIcon.Style>
+                                                <Style TargetType="ui:SymbolIcon">
+                                                    <Setter Property="Symbol" Value="ChevronUp24" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsBottomExpanded}" Value="True">
+                                                            <Setter Property="Symbol" Value="ChevronDown24" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:SymbolIcon.Style>
+                                        </ui:SymbolIcon>
+                                    </ui:Button>
+                                    <ListBox Grid.Column="1" SelectedIndex="{Binding BottomTabIndex, Mode=TwoWay}" Height="28" VerticalAlignment="Center"
+                                             BorderThickness="0" Background="Transparent" Padding="0"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                             AutomationProperties.Name="Bottom panel view" ItemContainerStyle="{StaticResource PillTabItemStyle}">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                        <ListBoxItem Content="Setting" />
+                                        <ListBoxItem Content=".reg" />
+                                        <ListBoxItem Content="PowerShell" />
+                                        <ListBoxItem Content="PowerShell (minimal)" />
+                                        <ListBoxItem Content="Registry.pol" />
+                                    </ListBox>
+                                    <c:HelpTip Grid.Column="2" HorizontalAlignment="Left" Text="{Binding BottomTabHelp}" />
+                                    <ui:Button Grid.Column="3" Appearance="Transparent" Margin="0,0,8,0" Padding="8,4" VerticalAlignment="Center"
+                                               Visibility="{Binding HasPreviewWarnings, Converter={StaticResource BoolToVis}}"
+                                               Command="{Binding ShowPreviewWarningsCommand}" ToolTip="{Binding PreviewWarningsText}"
+                                               AutomationProperties.Name="Compile warnings">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Warning24" FontSize="16" Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                                            <TextBlock Text="{Binding PreviewWarningCount}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </ui:Button>
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                Visibility="{Binding IsExportTab, Converter={StaticResource BoolToVis}}">
+                                        <CheckBox Content="Computer" IsChecked="{Binding IncludeComputer, Mode=TwoWay}" MinWidth="0" Margin="0,0,10,0"
+                                                  AutomationProperties.Name="Include Computer Configuration" />
+                                        <CheckBox Content="User" IsChecked="{Binding IncludeUser, Mode=TwoWay}" MinWidth="0"
+                                                  AutomationProperties.Name="Include User Configuration" />
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="5" Content="Copy" Icon="{ui:SymbolIcon Copy24}" VerticalAlignment="Center" Margin="0,0,8,0"
+                                               Command="{Binding CopyPreviewCommand}" IsEnabled="{Binding CanCopyPreview}"
+                                               ToolTip="Copy the preview text" />
+                                    <ui:Button Grid.Column="6" Content="Export..." Appearance="Primary" Icon="{ui:SymbolIcon ArrowUpload24}" VerticalAlignment="Center"
+                                               Command="{Binding ExportPreviewCommand}" IsEnabled="{Binding CanExportPreview}"
+                                               ToolTip="Export the whole GPO in the selected format" />
+                                </Grid>
+
+                                <!-- Setting view -->
+                                <Grid Grid.Row="1" Visibility="{Binding IsSettingTab, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Select a setting to see its details." HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveTab.HasDetails}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <Grid Margin="16,4,16,12" Visibility="{Binding ActiveTab.HasDetails, Converter={StaticResource BoolToVis}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.4*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding ActiveTab.DetailsTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Supported on" />
+                                                <TextBlock Text="{Binding ActiveTab.DetailsSupported}" TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Registry" />
+                                                <TextBlock Text="{Binding ActiveTab.DetailsRegistry}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Explanation" />
+                                                <TextBlock Text="{Binding ActiveTab.DetailsExplain}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                        <Grid Grid.Column="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="Registry preview" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                            <TextBox Grid.Row="1" Text="{Binding ActiveTab.DetailsPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                                                     AutomationProperties.Name="Registry preview of the selected setting"
+                                                     FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap" VerticalContentAlignment="Top"
+                                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- export preview view -->
+                                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                              Visibility="{Binding IsExportTab, Converter={StaticResource BoolToVis}}">
+                                    <Grid Margin="12,8,12,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding PreviewLineNumbers}" TextAlignment="Right" MinWidth="28" Margin="0,0,14,0"
+                                                   FontFamily="Cascadia Mono, Consolas" FontSize="12.5" IsHitTestVisible="False"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <TextBox Grid.Column="1" Style="{StaticResource PreviewTextBoxStyle}" Text="{Binding PreviewText, Mode=OneWay}"
+                                                 AutomationProperties.Name="Export preview" />
+                                    </Grid>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- status bar -->
+        <Border Grid.Row="3" Padding="16,5" Background="{DynamicResource AccentFillColorDefaultBrush}"
+                TextElement.Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" TextElement.FontSize="12">
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding PolicyCountText}" Margin="0,0,20,0" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Left" Text="{Binding LanguageText}" Margin="0,0,20,0" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Left" Text="{Binding FilterText}" Margin="0,0,20,0" VerticalAlignment="Center"
+                           Visibility="{Binding HasFilter, Converter={StaticResource BoolToVis}}" />
+                <Button DockPanel.Dock="Left" Style="{StaticResource StatusButtonStyle}" Margin="0,0,20,0"
+                        Content="{Binding WarningText}" ToolTip="Click to view the load warnings" Command="{Binding ShowWarningsCommand}"
+                        AutomationProperties.Name="Load warnings" />
+                <TextBlock Text="{Binding PathText}" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding GpoFolderText}" />
+            </DockPanel>
+        </Border>
+
+        <!-- loading overlay -->
+        <Grid Grid.Row="1" Grid.RowSpan="3" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <Border Background="{DynamicResource ApplicationBackgroundBrush}" Opacity="0.88" />
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ui:ProgressRing IsIndeterminate="True" Width="56" Height="56" />
+                <TextBlock Text="{Binding LoadingText}" Margin="0,16,0,0" HorizontalAlignment="Center" TextAlignment="Center"
+                           TextWrapping="Wrap" MaxWidth="560" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>
